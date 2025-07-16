@@ -3,15 +3,19 @@
   <head>
     <title>CMS</title>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="/stylesheets/style.css">
+    <link rel="stylesheet" href="/stylesheets/cms.css">
   </head>
   <body>
     <% if session[:success] %>
-      <p><%= session.delete(:success) %></p>
+      <div class="flash success">
+        <p><%= session.delete(:success) %></p>
+      </div>
     <% end %>
 
     <% if session[:error] %>
-      <p><%= session.delete(:error) %></p>
+      <div class="flash error">
+        <p><%= session.delete(:error) %></p>
+      </div>
     <% end %>
 
     <%= yield %>
