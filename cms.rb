@@ -1,13 +1,31 @@
 require 'sinatra'
 require 'sinatra/reloader'
 require 'tilt/erubi'
-
-root = File.expand_path('..', __FILE__)
+require 'redcarpet'
 
 configure do
   enable :sessions
   set :session_secret, SecureRandom.hex(32)
 end
+
+def render_markdown(text)
+  markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
+  markdown.render(text)
+end
+
+def load_file_content(path)
+  content = File.read(path)
+
+  case File.extname(path)
+  when '.txt'
+    headers['Content-Type'] = 'text/plain'
+    content
+  when '.md'
+    render_markdown(content)
+  end
+end
+
+root = File.expand_path('..', __FILE__)
 
 before do
   @files = Dir.glob('*', base: File.join(root, 'data'))
@@ -26,6 +44,5 @@ get '/:file_name' do
     redirect '/'
   end
 
-  headers['Content-Type'] = 'text/plain'
-  File.read(file_path)
+  load_file_content(file_path)
 end
