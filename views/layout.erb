@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>File-based CMS</title>
+    <title>CMS</title>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="/stylesheets/style.css">
   </head>
   <body>
+    <% if session[:success] %>
+      <p><%= session.delete(:success) %></p>
+    <% end %>
+
     <% if session[:error] %>
       <p><%= session.delete(:error) %></p>
     <% end %>

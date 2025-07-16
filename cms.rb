@@ -13,6 +13,14 @@ def render_markdown(text)
   markdown.render(text)
 end
 
+def data_path
+  if ENV['RACK_ENV'] == 'test'
+    File.expand_path('../test/data', __FILE__)
+  else
+    File.expand_path('../data', __FILE__)
+  end
+end
+
 def load_file_content(path)
   content = File.read(path)
 
@@ -25,24 +33,43 @@ def load_file_content(path)
   end
 end
 
-root = File.expand_path('..', __FILE__)
-
-before do
-  @files = Dir.glob('*', base: File.join(root, 'data'))
-end
-
+# View index page
 get '/' do
+  @files = Dir.glob('*', base: data_path)
   erb :index
 end
 
+# View document
 get '/:file_name' do
-  file = params[:file_name]
-  file_path = "#{root}/data/#{file}"
+  file_name = params[:file_name]
+  file_path = File.join(data_path, file_name)
 
   unless File.file?(file_path)
-    session[:error] = "#{file} does not exist."
+    session[:error] = "#{file_name} does not exist."
     redirect '/'
   end
 
   load_file_content(file_path)
+end
+
+# Render page for editing document
+get '/:file_name/edit' do
+  @file_name = params[:file_name]
+  file_path = File.join(data_path, @file_name)
+  @file_content = File.read(file_path)
+
+  erb :edit_doc
+end
+
+# Submit request with changes to edit document
+post '/:file_name' do
+  file_name = params[:file_name]
+  file_path = File.join(data_path, file_name)
+  content = params[:content]
+
+  File.write(file_path, content)
+
+  session[:success] = "#{file_name} has been updated."
+
+  redirect '/'
 end
