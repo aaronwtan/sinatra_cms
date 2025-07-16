@@ -1,0 +1,52 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    base64 (0.3.0)
+    erubi (1.13.1)
+    logger (1.7.0)
+    multi_json (1.16.0)
+    mustermann (3.0.3)
+      ruby2_keywords (~> 0.0.1)
+    rack (3.1.16)
+    rack-protection (4.1.1)
+      base64 (>= 0.1.0)
+      logger (>= 1.6.0)
+      rack (>= 3.0.0, < 4)
+    rack-session (2.1.1)
+      base64 (>= 0.1.0)
+      rack (>= 3.0.0)
+    rackup (2.2.1)
+      rack (>= 3)
+    ruby2_keywords (0.0.5)
+    sinatra (4.1.1)
+      logger (>= 1.6.0)
+      mustermann (~> 3.0)
+      rack (>= 3.0.0, < 4)
+      rack-protection (= 4.1.1)
+      rack-session (>= 2.0.0, < 3)
+      tilt (~> 2.0)
+    sinatra-contrib (4.1.1)
+      multi_json (>= 0.0.2)
+      mustermann (~> 3.0)
+      rack-protection (= 4.1.1)
+      sinatra (= 4.1.1)
+      tilt (~> 2.0)
+    tilt (2.6.1)
+    webrick (1.9.1)
+
+PLATFORMS
+  arm64-darwin-24
+  ruby
+
+DEPENDENCIES
+  erubi
+  rackup
+  sinatra
+  sinatra-contrib
+  webrick
+
+RUBY VERSION
+   ruby 3.2.7p253
+
+BUNDLED WITH
+   2.6.9
