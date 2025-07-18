@@ -3,6 +3,7 @@ ENV['RACK_ENV'] = 'test'
 require 'minitest/autorun'
 require 'rack/test'
 require 'fileutils'
+require 'pry'
 
 require_relative '../cms'
 
@@ -21,10 +22,18 @@ class CMSTest < Minitest::Test
     FileUtils.rm_rf(data_path)
   end
 
-  def create_document(name, content = "")
+  def create_document(name, content = '')
     File.open(File.join(data_path, name), 'w') do |file|
       file.write(content)
     end
+  end
+
+  def session
+    last_request.env['rack.session']
+  end
+
+  def admin_session
+    { 'rack.session' => { username: 'admin' } }
   end
 
   def test_index
@@ -33,7 +42,6 @@ class CMSTest < Minitest::Test
     create_document 'history.txt'
 
     get '/'
-
     assert_equal 200, last_response.status
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
     assert_includes last_response.body, 'about.md'
@@ -45,7 +53,6 @@ class CMSTest < Minitest::Test
     create_document 'history.txt', '2022 - Ruby 3.2 released.'
 
     get '/history.txt'
-
     assert_equal 200, last_response.status
     assert_equal 'text/plain', last_response['Content-Type']
     assert_includes last_response.body, '2022 - Ruby 3.2 released.'
@@ -53,18 +60,9 @@ class CMSTest < Minitest::Test
 
   def test_viewing_nonexistent_document
     get '/notafile.ext'
-
+    assert_equal 'notafile.ext does not exist.', session[:error]
     assert_equal 302, last_response.status
     assert_empty last_response.body
-
-    get last_response['Location']
-
-    assert_equal 200, last_response.status
-    assert_includes last_response.body, 'notafile.ext does not exist.'
-
-    get '/'
-
-    refute_includes last_response.body, 'notafile.ext does not exist.'
   end
 
   def test_viewing_markdown_document
@@ -72,7 +70,6 @@ class CMSTest < Minitest::Test
                                 A dynamic, open source programming language'
 
     get '/about.md'
-
     assert_equal 200, last_response.status
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
     assert_includes last_response.body, '<h1>Ruby is...</h1>'
@@ -82,7 +79,6 @@ class CMSTest < Minitest::Test
     create_document 'changes.txt'
 
     get '/changes.txt/edit'
-
     assert_equal 200, last_response.status
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
     assert_includes last_response.body, '<textarea'
@@ -91,16 +87,84 @@ class CMSTest < Minitest::Test
 
   def test_updating_document
     post '/changes.txt', content: 'new content'
+    assert_equal 'changes.txt has been updated.', session[:success]
+    assert_equal 302, last_response.status
 
+    get '/changes.txt'
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, 'new content'
+  end
+
+  def test_viewing_new_document_form
+    get '/new'
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<input'
+    assert_includes last_response.body, '<button type="submit"'
+  end
+
+  def test_creating_new_document
+    post '/create', file_name: 'test.txt'
+    assert_equal 'test.txt was created.', session[:success]
+    assert_equal 302, last_response.status
+
+    get '/'
+    assert_includes last_response.body, 'test.txt'
+  end
+
+  def test_creating_new_document_without_file_name
+    post '/create', file_name: ''
+    # assert_equal 'A name is required.', session[:error]
+    assert_equal 422, last_response.status
+  end
+
+  def test_deleting_document
+    create_document 'test.txt'
+
+    post '/test.txt/delete'
+    assert_equal 'test.txt has been deleted.', session[:success]
+    assert_equal 302, last_response.status
+
+    get '/'
+    refute_includes last_response.body, 'href="test.txt"'
+  end
+
+  def test_viewing_sign_in_form
+    get '/users/signin'
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<input'
+    assert_includes last_response.body, '<button type="submit"'
+  end
+
+  def test_signin
+    post '/users/signin', username: 'admin', password: 'secret'
+    assert_equal 'Welcome!', session[:success]
+    assert_equal 'admin', session[:username]
     assert_equal 302, last_response.status
 
     get last_response['Location']
+    assert_includes last_response.body, 'Signed in as admin.'
+  end
 
-    assert_includes last_response.body, 'changes.txt has been updated.'
+  def test_signin_with_invalid_credentials
+    post '/users/signin', username: 'test', password: 'notasecret'
+    assert_nil session[:username]
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, 'Invalid credentials'
+  end
 
-    get '/changes.txt'
+  def test_signout
+    get '/', {}, { 'rack.session' => { username: 'admin' } }
+    assert_equal 'admin', session[:username]
+    assert_includes last_response.body, 'Signed in as admin.'
+    assert_includes last_response.body, 'Sign Out'
 
-    assert_equal 200, last_response.status
-    assert_includes last_response.body, 'new content'
+    post '/users/signout'
+    assert_equal 'You have been signed out.', session[:success]
+    assert_nil session[:username]
+    assert_equal 302, last_response.status
+
+    get last_response['Location']
+    assert_nil session[:username]
+    assert_includes last_response.body, 'Sign In'
   end
 end

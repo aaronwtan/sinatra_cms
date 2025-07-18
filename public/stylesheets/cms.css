@@ -11,3 +11,12 @@ body {
   background-color: #FFFF99;
   padding: 10px;
 }
+
+form.inline {
+  display: inline;
+}
+
+.user-status {
+  font-style: italic;
+  font-size: 0.9rem;
+}
