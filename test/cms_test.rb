@@ -78,15 +78,23 @@ class CMSTest < Minitest::Test
   def test_editing_document
     create_document 'changes.txt'
 
-    get '/changes.txt/edit'
+    get '/changes.txt/edit', {}, admin_session
     assert_equal 200, last_response.status
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
     assert_includes last_response.body, '<textarea'
     assert_includes last_response.body, '<button type="submit"'
   end
 
+  def test_editing_document_signed_out
+    create_document 'changes.txt'
+
+    get '/changes.txt/edit'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+  end
+
   def test_updating_document
-    post '/changes.txt', content: 'new content'
+    post '/changes.txt', { content: 'new content' }, admin_session
     assert_equal 'changes.txt has been updated.', session[:success]
     assert_equal 302, last_response.status
 
@@ -95,15 +103,27 @@ class CMSTest < Minitest::Test
     assert_includes last_response.body, 'new content'
   end
 
+  def test_updating_document_signed_out
+    post '/changes.txt', content: 'new content'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+  end
+
   def test_viewing_new_document_form
-    get '/new'
+    get '/new', {}, admin_session
     assert_equal 200, last_response.status
     assert_includes last_response.body, '<input'
     assert_includes last_response.body, '<button type="submit"'
   end
 
+  def test_viewing_new_document_form_signed_out
+    get '/new'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+  end
+
   def test_creating_new_document
-    post '/create', file_name: 'test.txt'
+    post '/create', { file_name: 'test.txt' }, admin_session
     assert_equal 'test.txt was created.', session[:success]
     assert_equal 302, last_response.status
 
@@ -112,20 +132,34 @@ class CMSTest < Minitest::Test
   end
 
   def test_creating_new_document_without_file_name
-    post '/create', file_name: ''
+    post '/create', { file_name: '' }, admin_session
     # assert_equal 'A name is required.', session[:error]
     assert_equal 422, last_response.status
+  end
+
+  def test_creating_new_document_signed_out
+    post '/create', file_name: 'test.txt'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
   end
 
   def test_deleting_document
     create_document 'test.txt'
 
-    post '/test.txt/delete'
+    post '/test.txt/delete', {}, admin_session
     assert_equal 'test.txt has been deleted.', session[:success]
     assert_equal 302, last_response.status
 
     get '/'
     refute_includes last_response.body, 'href="test.txt"'
+  end
+
+  def test_deleting_document_signed_out
+    create_document 'test.txt'
+
+    post 'test.txt/delete'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
   end
 
   def test_viewing_sign_in_form

@@ -33,6 +33,17 @@ def load_file_content(path)
   end
 end
 
+def signed_in?
+  session.key?(:username)
+end
+
+def require_signed_in_user
+  return if signed_in?
+
+  session[:error] = "You must be signed in to do that."
+  redirect '/'
+end
+
 # View index page
 get '/' do
   @files = Dir.glob('*', base: data_path)
@@ -68,11 +79,15 @@ end
 
 # Render page to create new document
 get '/new' do
+  require_signed_in_user
+
   erb :new
 end
 
 # Create new document
 post '/create' do
+  require_signed_in_user
+
   file_name = params[:file_name]
 
   if file_name.empty?
@@ -103,6 +118,8 @@ end
 
 # Render page for editing document
 get '/:file_name/edit' do
+  require_signed_in_user
+
   @file_name = params[:file_name]
   file_path = File.join(data_path, @file_name)
   @file_content = File.read(file_path)
@@ -112,6 +129,8 @@ end
 
 # Submit request with changes to edit document
 post '/:file_name' do
+  require_signed_in_user
+
   file_name = params[:file_name]
   file_path = File.join(data_path, file_name)
   content = params[:content]
@@ -124,6 +143,8 @@ end
 
 # Delete a document
 post '/:file_name/delete' do
+  require_signed_in_user
+
   file_name = params[:file_name]
   file_path = File.join(data_path, file_name)
 
