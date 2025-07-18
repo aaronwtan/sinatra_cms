@@ -2,6 +2,8 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'tilt/erubi'
 require 'redcarpet'
+require 'yaml'
+require 'bcrypt'
 
 configure do
   enable :sessions
@@ -44,6 +46,27 @@ def require_signed_in_user
   redirect '/'
 end
 
+def load_user_credentials
+  credentials_path = if ENV['RACK_ENV'] == 'test'
+                       File.expand_path('../test/users.yml', __FILE__)
+                     else
+                       File.expand_path('../users.yml', __FILE__)
+                     end
+
+  YAML.load_file(credentials_path)
+end
+
+def valid_credentials?(username, password)
+  credentials = load_user_credentials
+
+  if credentials.key?(username)
+    bcrypt_password = BCrypt::Password.new(credentials[username])
+    return bcrypt_password == password
+  end
+
+  false
+end
+
 # View index page
 get '/' do
   @files = Dir.glob('*', base: data_path)
@@ -60,11 +83,12 @@ post '/users/signin' do
   username = params[:username]
   password = params[:password]
 
-  if username == 'admin' && password == 'secret'
+  if valid_credentials?(username, password)
     session[:username] = params[:username]
     session[:success] = "Welcome!"
     redirect '/'
   end
+
   session[:error] = "Invalid credentials"
   status 422
   erb :signin

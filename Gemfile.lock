@@ -2,6 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     base64 (0.3.0)
+    bcrypt (3.1.20)
     erubi (1.13.1)
     logger (1.7.0)
     minitest (5.25.5)
@@ -45,6 +46,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  bcrypt
   erubi
   minitest
   puma (~> 6.6)
