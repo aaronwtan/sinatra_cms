@@ -3,6 +3,7 @@ ENV['RACK_ENV'] = 'test'
 require 'minitest/autorun'
 require 'rack/test'
 require 'fileutils'
+require 'pry'
 
 require_relative '../cms'
 
@@ -132,8 +133,8 @@ class CMSTest < Minitest::Test
 
   def test_creating_new_document_without_file_name
     post '/create', { file_name: '' }, admin_session
-    # assert_equal 'A name is required.', session[:error]
     assert_equal 422, last_response.status
+    assert_includes last_response.body, 'A name is required.'
   end
 
   def test_creating_new_document_signed_out

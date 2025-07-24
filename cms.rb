@@ -27,11 +27,11 @@ def load_file_content(path)
   content = File.read(path)
 
   case File.extname(path)
-  when '.md'
-    erb render_markdown(content)
-  else
+  when '.txt'
     headers['Content-Type'] = 'text/plain'
     content
+  when '.md'
+    erb render_markdown(content)
   end
 end
 
@@ -130,7 +130,7 @@ end
 # View document
 get '/:file_name' do
   file_name = params[:file_name]
-  file_path = File.join(data_path, file_name)
+  file_path = File.join(data_path, File.basename(file_name))
 
   unless File.file?(file_path)
     session[:error] = "#{file_name} does not exist."
