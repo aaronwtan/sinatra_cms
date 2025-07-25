@@ -6,6 +6,10 @@
     <link rel="stylesheet" href="/stylesheets/cms.css">
   </head>
   <body>
+    <header>
+      <h1><a href="/">CMS 2.0</a></h1>
+    </header>
+    
     <% if session[:success] %>
       <div class="flash success">
         <p><%= session.delete(:success) %></p>

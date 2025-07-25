@@ -1,14 +1,24 @@
 require 'sinatra'
 require 'sinatra/reloader'
+
+# Enable ERB templating
 require 'tilt/erubi'
+
+# Enable Markdown conversion to HTML
 require 'redcarpet'
+
 require 'yaml'
+
+# Enable hash encryption using BCrypt
 require 'bcrypt'
 
+# require 'pry'
 configure do
   enable :sessions
   set :session_secret, SecureRandom.hex(32)
 end
+
+VALID_FILE_EXT = %w(.txt .md .jpg).freeze
 
 def render_markdown(text)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
@@ -24,14 +34,27 @@ def data_path
 end
 
 def load_file_content(path)
-  content = File.read(path)
+  @content = File.read(path)
 
   case File.extname(path)
   when '.txt'
-    headers['Content-Type'] = 'text/plain'
-    content
+    erb :content
   when '.md'
-    erb render_markdown(content)
+    erb render_markdown(@content)
+  end
+end
+
+def valid_file_ext?(file_name)
+  VALID_FILE_EXT.include?(File.extname(file_name))
+end
+
+def file_name_error(file_name)
+  if file_name.empty?
+    "A name is required."
+  elsif !valid_file_ext?(file_name)
+    "Invalid file extension. Supported extensions are #{VALID_FILE_EXT.join(', ')}"
+  elsif File.exist?(File.join(data_path, file_name))
+    "#{file_name} already exists."
   end
 end
 
@@ -113,18 +136,19 @@ post '/create' do
   require_signed_in_user
 
   file_name = params[:file_name]
+  error = file_name_error(file_name)
 
-  if file_name.empty?
-    session[:error] = "A name is required."
-    status 422
-    erb :new
-  else
+  unless error
     file_path = File.join(data_path, file_name)
     File.write(file_path, '')
 
     session[:success] = "#{file_name} was created."
     redirect '/'
   end
+
+  session[:error] = error
+  status 422
+  erb :new
 end
 
 # View document
