@@ -54,8 +54,17 @@ def file_name_error(file_name)
   elsif !valid_file_ext?(file_name)
     "Invalid file extension. Supported extensions are #{VALID_FILE_EXT.join(', ')}"
   elsif File.exist?(File.join(data_path, file_name))
-    "#{file_name} already exists."
+    "'#{file_name}' already exists."
   end
+end
+
+def validate_file_name(file_name)
+  error = file_name_error(file_name)
+
+  return unless error
+
+  session[:error] = error
+  status 422
 end
 
 def signed_in?
@@ -136,18 +145,16 @@ post '/create' do
   require_signed_in_user
 
   file_name = params[:file_name]
-  error = file_name_error(file_name)
+  validate_file_name(file_name)
 
-  unless error
+  unless status == 422
     file_path = File.join(data_path, file_name)
     File.write(file_path, '')
 
-    session[:success] = "#{file_name} was created."
+    session[:success] = "'#{file_name}' was created."
     redirect '/'
   end
 
-  session[:error] = error
-  status 422
   erb :new
 end
 
@@ -157,7 +164,7 @@ get '/:file_name' do
   file_path = File.join(data_path, File.basename(file_name))
 
   unless File.file?(file_path)
-    session[:error] = "#{file_name} does not exist."
+    session[:error] = "'#{file_name}' does not exist."
     redirect '/'
   end
 
@@ -185,7 +192,28 @@ post '/:file_name' do
 
   File.write(file_path, content)
 
-  session[:success] = "#{file_name} has been updated."
+  session[:success] = "'#{file_name}' has been updated."
+  redirect '/'
+end
+
+# Copy an existing document to a new document
+post '/:file_name/copy' do
+  require_signed_in_user
+
+  old_file_name = params[:file_name]
+  old_file_path = File.join(data_path, old_file_name)
+  old_file_content = File.read(old_file_path)
+
+  new_file_name = old_file_name.dup.insert(old_file_name.rindex('.'), ' copy')
+
+  validate_file_name(new_file_name)
+
+  redirect '/' if status == 422
+
+  new_file_path = File.join(data_path, new_file_name)
+  File.write(new_file_path, old_file_content)
+
+  session[:success] = "'#{old_file_name}' has been copied to '#{new_file_name}'."
   redirect '/'
 end
 
@@ -198,6 +226,6 @@ post '/:file_name/delete' do
 
   File.delete(file_path)
 
-  session[:success] = "#{file_name} has been deleted."
+  session[:success] = "'#{file_name}' has been deleted."
   redirect '/'
 end

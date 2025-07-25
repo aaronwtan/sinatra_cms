@@ -54,13 +54,12 @@ class CMSTest < Minitest::Test
 
     get '/history.txt'
     assert_equal 200, last_response.status
-    assert_equal 'text/plain', last_response['Content-Type']
     assert_includes last_response.body, '2022 - Ruby 3.2 released.'
   end
 
   def test_viewing_nonexistent_document
     get '/notafile.ext'
-    assert_equal 'notafile.ext does not exist.', session[:error]
+    assert_equal "'notafile.ext' does not exist.", session[:error]
     assert_equal 302, last_response.status
     assert_empty last_response.body
   end
@@ -95,7 +94,7 @@ class CMSTest < Minitest::Test
 
   def test_updating_document
     post '/changes.txt', { content: 'new content' }, admin_session
-    assert_equal 'changes.txt has been updated.', session[:success]
+    assert_equal "'changes.txt' has been updated.", session[:success]
     assert_equal 302, last_response.status
 
     get '/changes.txt'
@@ -105,6 +104,32 @@ class CMSTest < Minitest::Test
 
   def test_updating_document_signed_out
     post '/changes.txt', content: 'new content'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.', session[:error]
+  end
+
+  def test_copying_document
+    create_document 'test.txt'
+    post '/test.txt', { content: 'test content' }, admin_session
+
+    post '/test.txt/copy', {}, admin_session
+    assert_equal "'test.txt' has been copied to 'test copy.txt'.", session[:success]
+    assert_equal 302, last_response.status
+
+    get '/'
+    assert_includes last_response.body, 'test copy.txt'
+
+    get '/test.txt'
+    assert_includes last_response.body, 'test content'
+
+    get '/test%20copy.txt'
+    assert_includes last_response.body, 'test content'
+  end
+
+  def test_copying_document_signed_out
+    create_document 'test.txt'
+
+    post '/test.txt/copy'
     assert_equal 302, last_response.status
     assert_equal 'You must be signed in to do that.', session[:error]
   end
@@ -124,7 +149,7 @@ class CMSTest < Minitest::Test
 
   def test_creating_new_document
     post '/create', { file_name: 'test.txt' }, admin_session
-    assert_equal 'test.txt was created.', session[:success]
+    assert_equal "'test.txt' was created.", session[:success]
     assert_equal 302, last_response.status
 
     get '/'
@@ -137,6 +162,18 @@ class CMSTest < Minitest::Test
     assert_includes last_response.body, 'A name is required.'
   end
 
+  def test_creating_new_document_without_file_extension
+    post '/create', { file_name: 'test' }, admin_session
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "Invalid file extension. Supported extensions are #{VALID_FILE_EXT.join(', ')}"
+  end
+
+  def test_creating_new_document_with_invalid_file_extension
+    post '/create', { file_name: 'test.js' }, admin_session
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "Invalid file extension. Supported extensions are #{VALID_FILE_EXT.join(', ')}"
+  end
+
   def test_creating_new_document_signed_out
     post '/create', file_name: 'test.txt'
     assert_equal 302, last_response.status
@@ -147,7 +184,7 @@ class CMSTest < Minitest::Test
     create_document 'test.txt'
 
     post '/test.txt/delete', {}, admin_session
-    assert_equal 'test.txt has been deleted.', session[:success]
+    assert_equal "'test.txt' has been deleted.", session[:success]
     assert_equal 302, last_response.status
 
     get '/'

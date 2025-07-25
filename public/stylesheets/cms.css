@@ -1,5 +1,5 @@
 html {
-  font-size: 16px 
+  font-size: 16px;
 }
 
 body {
@@ -19,4 +19,36 @@ form.inline {
 .user-status {
   font-style: italic;
   font-size: 0.9rem;
+}
+
+a.icon:before, button.icon:before {
+  background-size: contain;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin: 0 0 0 3px;
+  vertical-align: -6px;
+  content: "";
+}
+
+button.icon {
+  background-color: transparent;
+  background-size: contain;
+  border: none;
+  display: inline-block;
+  padding: 0;
+  color: #3f3f3f;
+  cursor: pointer;
+}
+
+.edit:before {
+  background: transparent url('../images/icon-edit.png') 0 0 no-repeat;
+}
+
+.copy:before {
+  background: transparent url('../images/icon-copy.png') 0 0 no-repeat;
+}
+
+.delete:before {
+  background: transparent url('../images/icon-delete.jpg') 0 0 no-repeat;
 }
