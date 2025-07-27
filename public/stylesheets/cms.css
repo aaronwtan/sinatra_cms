@@ -9,11 +9,34 @@ body {
 
 .flash {
   background-color: #FFFF99;
-  padding: 10px;
+  margin: 5px 0;
+  padding: 5px 10px;
+}
+
+.flash p {
+  margin: 5px 0;
 }
 
 form.inline {
   display: inline;
+}
+
+form div {
+  margin: 7px 0;
+}
+
+label {
+  display: flex;
+  max-width: 300px;
+  width: 100%;
+}
+
+.signin label {
+  max-width: 250px;
+}
+
+label input {
+  margin-left: auto;
 }
 
 .user-status {
@@ -29,6 +52,10 @@ a.icon:before, button.icon:before {
   margin: 0 0 0 3px;
   vertical-align: -6px;
   content: "";
+}
+
+form:not(.inline) button {
+  margin-top: 20px;
 }
 
 button.icon {
@@ -51,4 +78,8 @@ button.icon {
 
 .delete:before {
   background: transparent url('../images/icon-delete.jpg') 0 0 no-repeat;
+}
+
+footer {
+  position: fixed;
 }

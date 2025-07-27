@@ -12,7 +12,7 @@ require 'yaml'
 # Enable hash encryption using BCrypt
 require 'bcrypt'
 
-# require 'pry'
+require 'pry'
 configure do
   enable :sessions
   set :session_secret, SecureRandom.hex(32)
@@ -23,6 +23,18 @@ VALID_FILE_EXT = %w(.txt .md .jpg).freeze
 def render_markdown(text)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
   markdown.render(text)
+end
+
+def root_path
+  if ENV['RACK_ENV'] == 'test'
+    File.expand_path('../test', __FILE__)
+  else
+    File.expand_path('..', __FILE__)
+  end
+end
+
+def users_path
+  File.join(root_path, 'users.yml')
 end
 
 def data_path
@@ -79,24 +91,82 @@ def require_signed_in_user
 end
 
 def load_user_credentials
+  YAML.load_file(users_path)
+end
+
+def load_signed_in_user_credentials(username)
+  current_user = load_user_credentials[username]
+  session[:username] = username
+  session[:phone] = current_user['phone']
+  session[:email] = current_user['email']
+  session[:nickname] = current_user['nickname']
+end
+
+def valid_credentials?(username, password, credentials)
+  if credentials.key?(username)
+    bcrypt_password = BCrypt::Password.new(credentials[username]['password'])
+    return bcrypt_password == password
+  end
+
+  false
+end
+
+def new_credentials_error
+  credentials = load_user_credentials
+
+  username = params[:username].downcase
+  password = params[:password]
+  confirm_password = params[:confirm_password]
+  signup_code = params[:signup_code].to_i
+
+  error = []
+
+  error << "'#{username}' already taken. Please choose a different username." if credentials.key?(username)
+  error << 'Passwords do not match.' if password != confirm_password
+  error << 'Invalid signup code.' if signup_code != credentials['SIGNUP_CODE']
+
+  error
+end
+
+def save_optional_field(field)
+  (params[field].nil? || params[field].empty?) ? nil : params[field]
+end
+
+def save_new_credentials
+  credentials = load_user_credentials
   credentials_path = if ENV['RACK_ENV'] == 'test'
                        File.expand_path('../test/users.yml', __FILE__)
                      else
                        File.expand_path('../users.yml', __FILE__)
                      end
 
-  YAML.load_file(credentials_path)
+  credentials[params[:username].downcase] = {
+    'password' => BCrypt::Password.create(params[:password]).to_s,
+    'phone' => save_optional_field(:phone),
+    'email' => save_optional_field(:email),
+    'nickname' => save_optional_field(:nickname)
+  }
+
+  File.write(credentials_path, YAML.dump(credentials))
 end
 
-def valid_credentials?(username, password)
-  credentials = load_user_credentials
-
-  if credentials.key?(username)
-    bcrypt_password = BCrypt::Password.new(credentials[username])
-    return bcrypt_password == password
+helpers do
+  def display_name
+    session[:nickname] || session[:username]
   end
 
-  false
+  def display_flash_messages(type, &view_block)
+    if block_given?
+      if session[type].is_a?(Array)
+        session[type].each(&view_block)
+        session[type] = nil
+      else
+        yield session.delete(type)
+      end
+    else
+      session.delete(type)
+    end
+  end
 end
 
 # View index page
@@ -112,12 +182,13 @@ end
 
 # Verify user credentials and signin
 post '/users/signin' do
-  username = params[:username]
+  credentials = load_user_credentials
+  username = params[:username].strip.downcase
   password = params[:password]
 
-  if valid_credentials?(username, password)
-    session[:username] = params[:username]
-    session[:success] = "Welcome!"
+  if valid_credentials?(username, password, credentials)
+    load_signed_in_user_credentials(username)
+    session[:success] = "Welcome #{username}!"
     redirect '/'
   end
 
@@ -131,6 +202,28 @@ post '/users/signout' do
   session.delete(:username)
   session[:success] = "You have been signed out."
   redirect '/'
+end
+
+# Render page to signup
+get '/users/signup' do
+  erb :signup
+end
+
+# Signup for a new account
+post '/users/signup' do
+  username = params[:username].downcase
+  error = new_credentials_error
+
+  if error.empty?
+    save_new_credentials
+    load_signed_in_user_credentials(username)
+    session[:success] = "Welcome #{display_name}! Your account has been successfully created."
+    redirect '/'
+  end
+
+  session[:error] = error
+  status 422
+  erb :signup
 end
 
 # Render page to create new document

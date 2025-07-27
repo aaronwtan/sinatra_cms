@@ -1,7 +1,9 @@
-<form action="/users/signin" method="post">
+<h2>Sign In</h2>
+
+<form class="signin" action="/users/signin" method="post">
   <div>
     <label for="username">Username:
-      <input type="text" id="username" name="username" value=<%= params[:username] %>>
+      <input type="text" id="username" name="username" value="<%= params[:username] %>">
     </label>
   </div>
 

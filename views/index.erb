@@ -20,10 +20,13 @@
 <% if session[:username] %>
   <form action="/users/signout" method="post">
     <p class="user-status">
-      Signed in as <%= session[:username] %>.
-      <button type="submit">Sign Out</button>
+      Signed in as <%= display_name %>.
+      <button type="submit">SIGN OUT</button>
     </p>
   </form>
 <% else %>
-  <p class="user-status"><a href="/users/signin">Sign In</a></p>
+  <footer>
+    <p class="user-status"><a href="/users/signin">SIGN IN</a></p>
+    <p class="user-status">Need an account? <a href="/users/signup">SIGN UP</a></p>
+  </footer>
 <% end %>

@@ -1,4 +1,8 @@
 ENV['RACK_ENV'] = 'test'
+YAML_TEST_STR = {
+  "SIGNUP_CODE" => 123456,
+  "admin" => { "password" => "$2a$12$VY1pTeZDFgESxZD78CDPdesRobTiMcGPhpa3nSiqFoeg8eGXmDiP2" } 
+}
 
 require 'minitest/autorun'
 require 'rack/test'
@@ -16,10 +20,12 @@ class CMSTest < Minitest::Test
 
   def setup
     FileUtils.mkdir_p(data_path)
+    File.write(users_path, YAML.dump(YAML_TEST_STR))
   end
 
   def teardown
     FileUtils.rm_rf(data_path)
+    FileUtils.remove_file(users_path, force: true)
   end
 
   def create_document(name, content = '')
@@ -208,7 +214,7 @@ class CMSTest < Minitest::Test
 
   def test_signin
     post '/users/signin', username: 'admin', password: 'secret'
-    assert_equal 'Welcome!', session[:success]
+    assert_equal 'Welcome admin!', session[:success]
     assert_equal 'admin', session[:username]
     assert_equal 302, last_response.status
 
@@ -227,7 +233,7 @@ class CMSTest < Minitest::Test
     get '/', {}, { 'rack.session' => { username: 'admin' } }
     assert_equal 'admin', session[:username]
     assert_includes last_response.body, 'Signed in as admin.'
-    assert_includes last_response.body, 'Sign Out'
+    assert_includes last_response.body, 'SIGN OUT'
 
     post '/users/signout'
     assert_equal 'You have been signed out.', session[:success]
@@ -236,6 +242,104 @@ class CMSTest < Minitest::Test
 
     get last_response['Location']
     assert_nil session[:username]
-    assert_includes last_response.body, 'Sign In'
+    assert_includes last_response.body, 'SIGN IN'
+  end
+
+  def test_viewing_signup_form
+    get '/users/signup'
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<input'
+    assert_includes last_response.body, '<button type="submit"'
+  end
+
+  def test_signup
+    post '/users/signup',
+         {
+           username: 'dev',
+           password: 'password',
+           confirm_password: 'password',
+           signup_code: 123456,
+           phone: '123-456-7890',
+           email: 'dev@dev.com',
+           nickname: 'Super Dev'
+         }
+    assert_equal 'Welcome Super Dev! Your account has been successfully created.', session[:success]
+    assert_equal 'dev', session[:username]
+    assert_equal 'Super Dev', session[:nickname]
+    assert_equal '123-456-7890', session[:phone]
+    assert_equal 'dev@dev.com', session[:email]
+    assert_equal 302, last_response.status
+
+    get last_response['Location']
+    assert_includes last_response.body, 'Signed in as Super Dev.'
+  end
+
+  def test_signup_with_empty_optional_fields
+    post '/users/signup',
+         {
+           username: 'dev',
+           password: 'password',
+           confirm_password: 'password',
+           signup_code: 123456
+         }
+    assert_equal 'Welcome dev! Your account has been successfully created.', session[:success]
+    assert_equal 'dev', session[:username]
+    assert_nil session[:nickname]
+    assert_nil session[:phone]
+    assert_nil session[:email]
+    assert_equal 302, last_response.status
+
+    get last_response['Location']
+    assert_includes last_response.body, 'Signed in as dev.'
+  end
+
+  def test_signup_with_existing_username
+    post '/users/signup',
+         {
+           username: 'admin',
+           password: 'password',
+           confirm_password: 'password',
+           signup_code: 123456
+         }
+    assert_includes last_response.body, "'admin' already taken. Please choose a different username."
+    assert_equal 422, last_response.status
+  end
+
+  def test_signup_with_failed_password_confirmation
+    post '/users/signup',
+         {
+           username: 'dev',
+           password: 'password',
+           confirm_password: 'notpassword',
+           signup_code: 123456
+         }
+    assert_includes last_response.body, 'Passwords do not match.'
+    assert_equal 422, last_response.status
+  end
+
+  def test_signup_with_invalid_signup_code
+    post '/users/signup',
+         {
+           username: 'dev',
+           password: 'password',
+           confirm_password: 'password',
+           signup_code: 654321
+         }
+    assert_includes last_response.body, 'Invalid signup code.'
+    assert_equal 422, last_response.status
+  end
+
+  def test_signup_with_multiple_validation_errors
+    post '/users/signup',
+         {
+           username: 'admin',
+           password: 'password',
+           confirm_password: 'notpassword',
+           signup_code: 654321
+         }
+    assert_includes last_response.body, "'admin' already taken. Please choose a different username."
+    assert_includes last_response.body, 'Passwords do not match.'
+    assert_includes last_response.body, 'Invalid signup code.'
+    assert_equal 422, last_response.status
   end
 end

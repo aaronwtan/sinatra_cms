@@ -12,14 +12,16 @@
     
     <% if session[:success] %>
       <div class="flash success">
-        <p><%= session.delete(:success) %></p>
+        <p><%= display_flash_messages(:success) %></p>
       </div>
     <% end %>
 
     <% if session[:error] %>
-      <div class="flash error">
-        <p><%= session.delete(:error) %></p>
-      </div>
+        <% display_flash_messages(:error) do |message| %>
+          <div class="flash error">
+            <p> <%= message %></p>
+          </div>
+        <% end %>
     <% end %>
 
     <%= yield %>

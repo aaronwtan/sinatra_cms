@@ -1,0 +1,47 @@
+<h2>Sign Up</h2>
+
+<form class="signup" action="/users/signup" method="post">
+  <div>
+    <label for="username">Username*:
+      <input type="text" id="username" name="username" value="<%= params[:username] %>" required>
+    </label>
+  </div>
+
+  <div>
+    <label for="password">Password*:
+      <input type="password" id="password" name="password" minlength="8" required>
+    </label>
+  </div>
+
+  <div>
+    <label for="confirm_password">Confirm Password*:
+      <input type="password" id="confirm_password" name="confirm_password" required>
+    </label>
+  </div>
+
+  <div>
+    <label for="signup_code">Signup Code*:
+      <input type="password" id="signup_code" name="signup_code" required>
+    </label>
+  </div>
+
+  <div>
+    <label for="phone">Phone:
+      <input type="tel" id="phone" name="phone" value="<%= params[:phone] %>">
+    </label>
+  </div>
+
+  <div>
+    <label for="email">Email:
+      <input type="email" id="email" name="email" value="<%= params[:email] %>">
+    </label>
+  </div>
+
+  <div>
+    <label for="nickname">Nickname:
+      <input type="text" id="nickname" name="nickname" value="<%= params[:nickname] %>">
+    </label>
+  </div>
+
+  <button type="submit">Sign Up</button>
+</form>
