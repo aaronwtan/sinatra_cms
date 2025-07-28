@@ -20,3 +20,8 @@ hacker:
   phone:
   email:
   nickname:
+maaronforever:
+  password: "$2a$12$EuDKjIrlCTSWwECi5V8qWOMXOzVzdbtNWTLqFo232ftwKrra3mncS"
+  phone: '1234567890'
+  email: babies@maaron.eu
+  nickname:

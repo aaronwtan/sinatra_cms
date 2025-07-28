@@ -46,13 +46,13 @@ def data_path
 end
 
 def load_file_content(path)
-  @content = File.read(path)
+  File.read(path)
+end
 
+def render_file_content(path, content)
   case File.extname(path)
-  when '.txt'
-    erb :content
-  when '.md'
-    erb render_markdown(@content)
+  when '.txt' then erb :content
+  when '.md'  then erb render_markdown(content)
   end
 end
 
@@ -77,6 +77,10 @@ def validate_file_name(file_name)
 
   session[:error] = error
   status 422
+end
+
+def generate_copy_file_name(original_file_name)
+  original_file_name.dup.insert(original_file_name.rindex('.'), ' copy')
 end
 
 def signed_in?
@@ -261,7 +265,8 @@ get '/:file_name' do
     redirect '/'
   end
 
-  load_file_content(file_path)
+  @content = File.read(file_path)
+  render_file_content(file_path, @content)
 end
 
 # Render page for editing document
@@ -297,7 +302,7 @@ post '/:file_name/copy' do
   old_file_path = File.join(data_path, old_file_name)
   old_file_content = File.read(old_file_path)
 
-  new_file_name = old_file_name.dup.insert(old_file_name.rindex('.'), ' copy')
+  new_file_name = generate_copy_file_name(old_file_name)
 
   validate_file_name(new_file_name)
 

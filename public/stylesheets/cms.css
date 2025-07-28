@@ -17,6 +17,14 @@ body {
   margin: 5px 0;
 }
 
+.flash .success {
+  background-color: green;
+}
+
+.flash .error {
+  background-color: red;
+}
+
 form.inline {
   display: inline;
 }
